@@ -104,7 +104,7 @@ func optimizePath(inPath string, colorConversion, quantization int) {
 	}
 
 	// save optimized image
-	outPath := pathWithSuffix(inPath, "-optimized")
+	outPath := pathWithSuffix(inPath, "-lossy")
 	outFile, createErr := os.Create(outPath)
 	if createErr != nil {
 		fmt.Printf("couldn't create %v: %v\n", outPath, createErr)
