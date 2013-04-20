@@ -23,9 +23,11 @@ const (
 func main() {
 	var convertToRGBA, convertToGrayscale bool
 	var quantization int
+	var extension string
 	flag.BoolVar(&convertToRGBA, "c", false, "convert image to 32-bit color")
 	flag.BoolVar(&convertToGrayscale, "g", false, "convert image to grayscale")
 	flag.IntVar(&quantization, "s", 10, "quantization threshold, zero is lossless")
+	flag.StringVar(&extension, "e", "-lossy.png", "filename extension of output files")
 	flag.Parse()
 
 	var colorConversion int
@@ -36,11 +38,11 @@ func main() {
 	}
 
 	for _, path := range flag.Args() {
-		optimizePath(path, colorConversion, quantization)
+		optimizePath(path, colorConversion, quantization, extension)
 	}
 }
 
-func optimizePath(inPath string, colorConversion, quantization int) {
+func optimizePath(inPath string, colorConversion, quantization int, extension string) {
 	// load image
 	inFile, openErr := os.Open(inPath)
 	if openErr != nil {
@@ -104,7 +106,7 @@ func optimizePath(inPath string, colorConversion, quantization int) {
 	}
 
 	// save optimized image
-	outPath := pathWithSuffix(inPath, "-lossy")
+	outPath := pathWithSuffix(inPath, extension)
 	outFile, createErr := os.Create(outPath)
 	if createErr != nil {
 		fmt.Printf("couldn't create %v: %v\n", outPath, createErr)
@@ -130,7 +132,7 @@ func pathWithSuffix(filePath string, suffix string) string {
 	} else {
 		insertion = len(filePath)
 	}
-	return filePath[:insertion] + suffix + ".png"
+	return filePath[:insertion] + suffix
 }
 
 func optimizeForAverageFilter(
