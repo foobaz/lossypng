@@ -21,6 +21,10 @@ Passing the -c option will convert an image to 32-bit color and use direct
 color compression, which may produce better results. Pass the -g option with
 grayscale images to ensure they use direct grayscale instead of a palette.
 
+Images with a lot of flat colors will not compress well with lossypng and may
+even increase in size. These images are already well-quantized. Photographic
+images compress best.
+
 ###Options
 `-c`
 Convert image to 32-bit color.
@@ -59,7 +63,10 @@ horizontal and vertical banding.
 
 The alternative Paeth algorithm requires an indexed color image and lossypng
 cannot convert direct color images to indexed color. To try the Paeth algorithm
-quantize these images with another program first, like pngquant or pngnq.
+quantize these images with another program first, like pngnq or pngquant.
+
+The image files produced by lossypng can be compressed further with advanced
+DEFLATE compressors like advpng or pngout.
 
 ###Improvements
 For some applications, all transparent pixels in the image must remain fully
@@ -79,3 +86,28 @@ program would have to be updated to work with larger color components.
 The holy grail of lossy PNG compression is to go low-level instead and rewrite
 zlib to perform lossy comparisons. However, this presents many challenges and
 would be a very difficult project.
+
+###Examples
+Lena, original, 463kB:
+
+![lena](http://frammish.org/lossypng/lena.png)
+
+Lena, -s=16, 142kB:
+
+![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
+
+Lena, -s=40, 65kB:
+
+![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
+
+Tux, original, 12kB:
+
+![tux](http://frammish.org/lossypng/Tux.png)
+
+Tux, -s=16, 13kB (larger!):
+
+![tux lossy](http://frammish.org/lossypng/Tux-lossy.png)
+
+Tux, -s=40, 8kB:
+
+![tux heavy](http://frammish.org/lossypng/Tux-heavy.png)
