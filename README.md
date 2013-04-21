@@ -35,6 +35,10 @@ Convert image to grayscale.
 Quantization strength. Defaults to 16. Zero is lossless.
 
 ###Discussion
+If multiple input files are given, lossypng will process them in parallel. Most
+images will compress in well under a second. Large images may take a few
+seconds.
+
 The compression artifacts produced by lossypng show up as dots and smearing
 towards the bottom right. Images with a gradient in this direction exhibit
 banding. Text remains fully readable, but images with a lot of text will not
