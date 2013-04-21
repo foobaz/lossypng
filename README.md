@@ -38,6 +38,9 @@ Convert image to grayscale.
 `-s=strength`
 Quantization strength. Defaults to 16. Zero is lossless.
 
+###Installation
+`go get github.com/foobaz/lossypng`
+
 ###Credit
 This compression technique was invented by Michael Vinther for his excellent
 Windows program, [Image Analyzer](http://meesoft.logicnet.dk/Analyzer/). It
