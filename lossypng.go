@@ -238,11 +238,11 @@ func optimizeForPaethFilter(
 // a = left, b = above, c = upper left
 func paethPredictor(a, b, c uint8) uint8 {
 	// Initial estimate
-	p := uint(a) + uint(b) - uint(c)
+	p := int(a) + int(b) - int(c)
 	// Distances to a, b, c
-	pa := difference(p, uint(a))
-	pb := difference(p, uint(b))
-	pc := difference(p, uint(c))
+	pa := abs(p - int(a))
+	pb := abs(p - int(b))
+	pc := abs(p - int(c))
 
 	// Return nearest of a,b,c, breaking ties in order a,b,c.
 	if pa <= pb && pa <= pc {
@@ -293,4 +293,11 @@ func difference(a, b uint) uint {
 	}
 
 	return b - a
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
