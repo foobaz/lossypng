@@ -100,26 +100,28 @@ would be a very difficult project.
 All code in lossypng is public domain. You may use it however you wish.
 
 ###Examples
-Lena, original, 463kB:
+####Lena, 24-bit direct color
+original, 463kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
 
-Lena, -s=16, 142kB:
+-s=16, 142kB:
 
 ![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
 
-Lena, -s=40, 65kB:
+-s=40, 65kB:
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
-Tux, original, 12kB:
+####Tux, 8-bit indexed color
+original, 12kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
 
-Tux, -s=16, 13kB (larger!):
+-s=16, 13kB (larger!):
 
 ![tux lossy](http://frammish.org/lossypng/Tux-lossy.png)
 
-Tux, -s=40, 8kB:
+-s=40, 8kB:
 
 ![tux heavy](http://frammish.org/lossypng/Tux-heavy.png)
