@@ -200,7 +200,7 @@ func optimizeForAverageFilter(
 				newValue := here - average + halfStep // underflows, but that's ok
 				newValue -= newValue % quantization
 				newValue += average // because this usually overflows it back
-				if newValue <= 255 { // but not always
+				if newValue < 256 { // but not always
 					pixels[offset] = uint8(newValue)
 				}
 			}
@@ -285,14 +285,6 @@ func gapsqrt64(x uint64) uint32 {
 		}
 	}
 	return uint32(root >> 1)
-}
-
-func difference(a, b uint) uint {
-	if a > b {
-		return a - b
-	}
-
-	return b - a
 }
 
 func abs(x int) int {
