@@ -38,6 +38,11 @@ Convert image to grayscale.
 `-s=strength`
 Quantization strength. Defaults to 16. Zero is lossless.
 
+###Credit
+This compression technique was invented by Michael Vinther for his excellent
+Windows program, [Image Analyzer](http://meesoft.logicnet.dk/Analyzer/). It
+does much more than just compression.
+
 ###Discussion
 If multiple input files are given, lossypng will process them in parallel. Most
 images will compress in well under a second. Large images may take a few
@@ -63,11 +68,14 @@ horizontal and vertical banding.
 
 The alternative Paeth algorithm requires an indexed color image and lossypng
 cannot convert direct color images to indexed color. To try the Paeth algorithm
-quantize these images with another program first, like pngnq or pngquant. This
-will improve compression on images with a lot of flat color.
+quantize these images with another program first, like
+[pngnq](http://pngnq.sourceforge.net/) or [pngquant](http://pngquant.org/).
+This will improve compression on images with a lot of flat color.
 
 The image files produced by lossypng can be compressed further with advanced
-DEFLATE compressors like advpng or pngout.
+DEFLATE compressors like
+[advpng](http://advancemame.sourceforge.net/comp-readme.html) or
+[pngout](http://advsys.net/ken/utils.htm).
 
 ###Improvements
 For some applications, all transparent pixels in the image must remain fully
@@ -87,6 +95,9 @@ program would have to be updated to work with larger color components.
 The holy grail of lossy PNG compression is to go low-level instead and rewrite
 zlib to perform lossy comparisons. However, this presents many challenges and
 would be a very difficult project.
+
+###License
+All code in lossypng is public domain. You may use it however you wish.
 
 ###Examples
 Lena, original, 463kB:
