@@ -63,7 +63,8 @@ horizontal and vertical banding.
 
 The alternative Paeth algorithm requires an indexed color image and lossypng
 cannot convert direct color images to indexed color. To try the Paeth algorithm
-quantize these images with another program first, like pngnq or pngquant.
+quantize these images with another program first, like pngnq or pngquant. This
+will improve compression on images with a lot of flat color.
 
 The image files produced by lossypng can be compressed further with advanced
 DEFLATE compressors like advpng or pngout.
