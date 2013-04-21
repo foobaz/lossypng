@@ -44,7 +44,8 @@ Quantization strength. Defaults to 16. Zero is lossless.
 ###Credit
 This compression technique was invented by Michael Vinther for his excellent
 Windows program, [Image Analyzer](http://meesoft.logicnet.dk/Analyzer/). It
-does much more than just compression.
+does much more than just compression. It was ported to Go as a command-line
+tool by William MacKay.
 
 ###Discussion
 If multiple input files are given, lossypng will process them in parallel. Most
