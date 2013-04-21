@@ -11,7 +11,9 @@ import (
 	"image/png"
 	"os"
 	"path"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 const (
@@ -22,11 +24,11 @@ const (
 
 func main() {
 	var convertToRGBA, convertToGrayscale bool
-	var quantization int
+	var quantization uint
 	var extension string
 	flag.BoolVar(&convertToRGBA, "c", false, "convert image to 32-bit color")
 	flag.BoolVar(&convertToGrayscale, "g", false, "convert image to grayscale")
-	flag.IntVar(&quantization, "s", 10, "quantization threshold, zero is lossless")
+	flag.UintVar(&quantization, "s", 16, "quantization threshold, zero is lossless")
 	flag.StringVar(&extension, "e", "-lossy.png", "filename extension of output files")
 	flag.Parse()
 
@@ -37,12 +39,47 @@ func main() {
 		colorConversion = grayscaleConversion
 	}
 
-	for _, path := range flag.Args() {
-		optimizePath(path, colorConversion, quantization, extension)
+	allPaths := flag.Args()
+	pathCount := len(allPaths)
+	n := runtime.NumCPU()
+	if n > pathCount {
+		n = pathCount
 	}
+	if n > 1 {
+		runtime.GOMAXPROCS(n)
+	}
+	pathChan := make(chan string)
+	var waiter sync.WaitGroup
+	waiter.Add(n)
+	for i := 0; i < n; i++ {
+		go optimizePaths(pathChan, &waiter, colorConversion, quantization, extension)
+	}
+	for _, path := range flag.Args() {
+		pathChan <- path
+	}
+	close(pathChan)
+	waiter.Wait()
 }
 
-func optimizePath(inPath string, colorConversion, quantization int, extension string) {
+func optimizePaths(
+	pathChan <-chan string,
+	waiter *sync.WaitGroup,
+	colorConversion int,
+	quantization uint,
+	extension string,
+) {
+	for path := range pathChan {
+		optimizePath(path, colorConversion, quantization, extension)
+	}
+	waiter.Done()
+}
+
+func optimizePath(
+	inPath string,
+	colorConversion int,
+	quantization uint,
+	extension string,
+) {
 	// load image
 	inFile, openErr := os.Open(inPath)
 	if openErr != nil {
@@ -64,23 +101,22 @@ func optimizePath(inPath string, colorConversion, quantization int, extension st
 	case grayscaleConversion:
 		converted := image.NewGray(bounds)
 		draw.Draw(converted, bounds, decoded, image.ZP, draw.Src)
-		optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, quantization, 1)
+		optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, 1, quantization)
 		optimized = converted
 	case rgbaConversion:
 		converted := image.NewRGBA(bounds)
 		draw.Draw(converted, bounds, decoded, image.ZP, draw.Src)
-		optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, quantization, 4)
+		optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, 4, quantization)
 		optimized = converted
 	default:
 		// no color conversion requested
 		switch optimizee := decoded.(type) {
 		case *image.Alpha:
-			optimizeForAverageFilter(optimizee.Pix, bounds, optimizee.Stride, quantization, 1)
+			optimizeForAverageFilter(optimizee.Pix, bounds, optimizee.Stride, 1, quantization)
 		case *image.Gray:
-			optimizeForAverageFilter(optimizee.Pix, bounds, optimizee.Stride, quantization, 1)
-		case *image.RGBA:
-			// most PNGs decode as image.RGBA
-			optimizeForAverageFilter(optimizee.Pix, bounds, optimizee.Stride, quantization, 4)
+			optimizeForAverageFilter(optimizee.Pix, bounds, optimizee.Stride, 1, quantization)
+		case *image.NRGBA:
+			optimizeForAverageFilter(optimizee.Pix, bounds, optimizee.Stride, 4, quantization)
 		case *image.Paletted:
 			// many PNGs decode as image.Paletted
 			// use alternative paeth optimizer for paletted images
@@ -88,19 +124,20 @@ func optimizePath(inPath string, colorConversion, quantization int, extension st
 		case *image.Alpha16:
 			converted := image.NewAlpha(bounds)
 			draw.Draw(converted, bounds, decoded, image.ZP, draw.Src)
-			optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, quantization, 1)
+			optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, 1, quantization)
 			optimized = converted
 		case *image.Gray16:
 			converted := image.NewGray(bounds)
 			draw.Draw(converted, bounds, decoded, image.ZP, draw.Src)
-			optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, quantization, 1)
+			optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, 1, quantization)
 			optimized = converted
 		default:
 			// convert all other formats to RGBA
 			// most JPEGs decode as image.YCbCr
-			converted := image.NewRGBA(bounds)
+			// most PNGs decode as image.RGBA
+			converted := image.NewNRGBA(bounds)
 			draw.Draw(converted, bounds, decoded, image.ZP, draw.Src)
-			optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, quantization, 4)
+			optimizeForAverageFilter(converted.Pix, bounds, converted.Stride, 4, quantization)
 			optimized = converted
 		}
 	}
@@ -138,47 +175,34 @@ func pathWithSuffix(filePath string, suffix string) string {
 func optimizeForAverageFilter(
 	pixels []uint8,
 	bounds image.Rectangle,
-	stride, quantization, bytesPerPixel int,
+	stride, bytesPerPixel int,
+	quantization uint,
 ) {
-	if quantization <= 0 {
+	if quantization == 0 {
 		// Algorithm requires positive number.
 		// Zero means lossless operation, so leaving image unchanged is correct.
-		// Negative number is meaningless.
 		return
 	}
 
 	height := bounds.Dy()
 	width := bounds.Dx()
-	halfStep := (quantization + 1) / 2
+	halfStep := quantization / 2
 
 	for y := 1; y < height; y++ {
 		for x := 1; x < width; x++ {
 			for c := 0; c < bytesPerPixel; c++ {
 				offset := y*stride + x*bytesPerPixel + c
-				here := int(pixels[offset])
-				
-				up := int(pixels[offset-stride])
-				left := int(pixels[offset-bytesPerPixel])
+				here := uint(pixels[offset])
+				up := uint(pixels[offset-stride])
+				left := uint(pixels[offset-bytesPerPixel])
 				average := (up + left) / 2 // PNG average filter
 
-				var newValue int
-				if abs(average-here) <= quantization {
-					newValue = average
-				} else {
-					i := (here - average) % quantization
-					if i < halfStep {
-						newValue = here - i
-						if newValue < 0 {
-							newValue = 0
-						}
-					} else {
-						newValue = here + quantization - i
-						if newValue > 255 {
-							newValue = 255
-						}
-					}
+				newValue := here - average + halfStep // underflows, but that's ok
+				newValue -= newValue % quantization
+				newValue += average // because this usually overflows it back
+				if newValue <= 255 { // but not always
+					pixels[offset] = uint8(newValue)
 				}
-				pixels[offset] = uint8(newValue)
 			}
 		}
 	}
@@ -187,7 +211,8 @@ func optimizeForAverageFilter(
 func optimizeForPaethFilter(
 	pixels []uint8,
 	bounds image.Rectangle,
-	stride, quantization int,
+	stride int,
+	quantization uint,
 	palette color.Palette,
 ) {
 	height := bounds.Dy()
@@ -200,7 +225,7 @@ func optimizeForPaethFilter(
 			up := pixels[offset-stride]
 			left := pixels[offset-1]
 			diagonal := pixels[offset-stride-1]
-			paeth := paethPredictor(left, up, diagonal); // PNG Paeth filter
+			paeth := paethPredictor(left, up, diagonal) // PNG Paeth filter
 
 			distance := colorDistance(palette[here], palette[paeth])
 			if distance < quantization {
@@ -213,11 +238,11 @@ func optimizeForPaethFilter(
 // a = left, b = above, c = upper left
 func paethPredictor(a, b, c uint8) uint8 {
 	// Initial estimate
-	p := int(a) + int(b) - int(c)
+	p := uint(a) + uint(b) - uint(c)
 	// Distances to a, b, c
-	pa := abs(p - int(a))
-	pb := abs(p - int(b))
-	pc := abs(p - int(c))
+	pa := difference(p, uint(a))
+	pb := difference(p, uint(b))
+	pc := difference(p, uint(c))
 
 	// Return nearest of a,b,c, breaking ties in order a,b,c.
 	if pa <= pb && pa <= pc {
@@ -228,7 +253,7 @@ func paethPredictor(a, b, c uint8) uint8 {
 	return c
 }
 
-func colorDistance(a, b color.Color) int {
+func colorDistance(a, b color.Color) uint {
 	const componentCount = 4
 	var ca, cb [componentCount]uint32
 	ca[0], ca[1], ca[2], ca[3] = a.RGBA()
@@ -245,7 +270,7 @@ func colorDistance(a, b color.Color) int {
 	}
 
 	// ca/cb components are in 16-bit color, output must be 8-bit color, so shift
-	return int(gapsqrt64(d2) >> 8)
+	return uint(gapsqrt64(d2) >> 8)
 }
 
 func gapsqrt64(x uint64) uint32 {
@@ -262,10 +287,10 @@ func gapsqrt64(x uint64) uint32 {
 	return uint32(root >> 1)
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
+func difference(a, b uint) uint {
+	if a > b {
+		return a - b
 	}
 
-	return x
+	return b - a
 }
