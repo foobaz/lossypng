@@ -177,7 +177,7 @@ func optimizePath(
 	if inStatErr != nil || outStatErr != nil {
 		percentage = "???%"
 	} else {
-		percentage = fmt.Sprintf("%d%%", (outSize * 100 + inSize / 2) / inSize)
+		percentage = fmt.Sprintf("%d%%", (outSize*100+inSize/2)/inSize)
 	}
 	fmt.Printf(
 		"compressed %s (%s) to %s (%s, %s)\n",
@@ -324,13 +324,13 @@ func abs(x int) int {
 }
 
 func sizeDesc(size int64) string {
-        suffixes := []string{"B", "kB", "MB", "GB", "TB"}
-        var i int
-        for i = 0; i+1 < len(suffixes); i++ {
-                if size < 10000 {
-                        break
-                }
-                size = (size + 500) / 1000
-        }
-        return fmt.Sprintf("%d%v", size, suffixes[i])
+	suffixes := []string{"B", "kB", "MB", "GB", "TB"}
+	var i int
+	for i = 0; i+1 < len(suffixes); i++ {
+		if size < 10000 {
+			break
+		}
+		size = (size + 500) / 1000
+	}
+	return fmt.Sprintf("%d%v", size, suffixes[i])
 }
