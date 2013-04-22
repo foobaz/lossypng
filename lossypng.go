@@ -180,9 +180,9 @@ func optimizePath(
 	}
 	fmt.Printf(
 		"compressed %s (%s) to %s (%s, %s)\n",
-		inPath,
+		path.Base(inPath),
 		inSizeDesc,
-		outPath,
+		path.Base(outPath),
 		outSizeDesc,
 		percentage,
 	)
@@ -323,13 +323,13 @@ func abs(x int) int {
 }
 
 func sizeDesc(size int64) string {
-        suffixes := []string{"B", "kiB", "MiB", "GiB", "TiB"}
+        suffixes := []string{"B", "kB", "MB", "GB", "TB"}
         var i int
         for i = 0; i+1 < len(suffixes); i++ {
                 if size < 10000 {
                         break
                 }
-                size /= 1024
+                size /= 1000
         }
         return fmt.Sprintf("%d%v", size, suffixes[i])
 }
