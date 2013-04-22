@@ -117,7 +117,7 @@ original, 474kB:
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
-####Tux, 8-bit indexed color
+####Tux, 8-bit indexed color with alpha
 original, 12kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
