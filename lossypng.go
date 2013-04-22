@@ -87,6 +87,7 @@ func optimizePath(
 		return
 	}
 
+	inInfo, inStatErr := inFile.Stat()
 	decoded, _, decodeErr := image.Decode(inFile)
 	inFile.Close()
 	if decodeErr != nil {
@@ -151,13 +152,40 @@ func optimizePath(
 	}
 
 	encodeErr := png.Encode(outFile, optimized)
+	outInfo, outStatErr := outFile.Stat()
 	outFile.Close()
 	if encodeErr != nil {
 		fmt.Printf("couldn't encode %v: %v\n", inPath, encodeErr)
 		return
 	}
 
-	// TODO: print compression statistics
+	var inSize, outSize int64
+	var inSizeDesc, outSizeDesc, percentage string
+	if inStatErr != nil {
+		inSizeDesc = "???B"
+	} else {
+		inSize = inInfo.Size()
+		inSizeDesc = sizeDesc(inSize)
+	}
+	if outStatErr != nil {
+		outSizeDesc = "???B"
+	} else {
+		outSize = outInfo.Size()
+		outSizeDesc = sizeDesc(outSize)
+	}
+	if inStatErr != nil || outStatErr != nil {
+		percentage = "???%"
+	} else {
+		percentage = fmt.Sprintf("%d%%", (outSize * 100 + inSize / 2) / inSize)
+	}
+	fmt.Printf(
+		"compressed %s (%s) to %s (%s, %s)\n",
+		inPath,
+		inSizeDesc,
+		outPath,
+		outSizeDesc,
+		percentage,
+	)
 }
 
 func pathWithSuffix(filePath string, suffix string) string {
@@ -292,4 +320,16 @@ func abs(x int) int {
 		return -x
 	}
 	return x
+}
+
+func sizeDesc(size int64) string {
+        suffixes := []string{"B", "kiB", "MiB", "GiB", "TiB"}
+        var i int
+        for i = 0; i+1 < len(suffixes); i++ {
+                if size < 10000 {
+                        break
+                }
+                size /= 1024
+        }
+        return fmt.Sprintf("%d%v", size, suffixes[i])
 }
