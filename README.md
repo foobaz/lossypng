@@ -109,23 +109,23 @@ original, 463kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
 
--s=16, 142kB:
+-s=16, 142kB (31% of original):
 
 ![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
 
--s=40, 65kB:
+-s=40, 65kB (14% of original):
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
 ####Tux, 8-bit indexed color
-original, 12kB:
+original, 11kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
 
--s=16, 13kB (larger!):
+-s=16, 13kB (111% of original, larger!):
 
 ![tux lossy](http://frammish.org/lossypng/Tux-lossy.png)
 
--s=40, 8kB:
+-s=40, 8kB (66% of original):
 
 ![tux heavy](http://frammish.org/lossypng/Tux-heavy.png)
