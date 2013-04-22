@@ -105,20 +105,20 @@ All code in lossypng is public domain. You may use it however you wish.
 
 ###Examples
 ####Lena, 24-bit direct color
-original, 463kB:
+original, 474kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
 
--s=16, 142kB (31% of original):
+-s=16, 145kB (31% of original):
 
 ![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
 
--s=40, 65kB (14% of original):
+-s=40, 66kB (14% of original):
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
 ####Tux, 8-bit indexed color
-original, 11kB:
+original, 12kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
 

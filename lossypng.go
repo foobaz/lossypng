@@ -159,6 +159,7 @@ func optimizePath(
 		return
 	}
 
+	// print compression statistics
 	var inSize, outSize int64
 	var inSizeDesc, outSizeDesc, percentage string
 	if inStatErr != nil {
@@ -329,7 +330,7 @@ func sizeDesc(size int64) string {
                 if size < 10000 {
                         break
                 }
-                size /= 1000
+                size = (size + 500) / 1000
         }
         return fmt.Sprintf("%d%v", size, suffixes[i])
 }
