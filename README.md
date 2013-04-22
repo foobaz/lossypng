@@ -129,3 +129,8 @@ original, 12kB:
 -s=40, 8kB (66% of original):
 
 ![tux heavy](http://frammish.org/lossypng/Tux-heavy.png)
+
+The Tux image performs poorly because the original image was compressed with
+a better DEFLATE algorithm than Go offers. If all three images are postprocessed
+with pngout, lossypng looks much better. The image for -s=16 compresses to 10kB
+(83%) and -s=40 compresses to 7kB (55%).
