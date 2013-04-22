@@ -48,20 +48,16 @@ does much more than just compression. It was ported to Go as a command-line
 tool by William MacKay.
 
 ###Discussion
-If multiple input files are given, lossypng will process them in parallel. Most
-images will compress in well under a second. Large images may take a few
-seconds.
-
-The compression artifacts produced by lossypng show up as dots and smearing
-towards the bottom right. Images with a gradient in this direction exhibit
-banding. Text remains fully readable, but images with a lot of text will not
-compress well.
-
 The main algorithm works by compressing the image using PNG's average filter. It
-quantizes the output bytes of the PNG file, but since the image is decoded
-using the average filter, the pixel color values are not quantized and have full
-range. The resulting artifacts are less noticable than traditional quantization
-in color space.
+quantizes the pixels in the PNG file, after the filter but before DEFLATE (zlib)
+compression. Since the image is decoded using the average filter, the pixel
+color values are not quantized and have full range. The resulting artifacts are
+less noticable than traditional quantization with a color palette.
+
+The compression artifacts produced by the main algorithm show up as dots and
+smearing towards the bottom right. Images with a gradient in this direction
+exhibit banding. Text remains fully readable, but images with a lot of text will
+not compress well.
 
 There is an alternative algorithm for paletted images that optimizes for PNG's
 Paeth filter. The average filter does not work well for paletted images because
@@ -80,6 +76,10 @@ The image files produced by lossypng can be compressed further with advanced
 DEFLATE compressors like
 [advpng](http://advancemame.sourceforge.net/comp-readme.html) or
 [pngout](http://advsys.net/ken/utils.htm).
+
+If multiple input files are given, lossypng will process them in parallel. Most
+images will compress in well under a second. Large images may take a few
+seconds.
 
 ###Improvements
 For some applications, all transparent pixels in the image must remain fully
