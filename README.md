@@ -2,7 +2,7 @@ lossypng
 ========
 
 ###Synopsis
-lossypng [options] files...
+`lossypng [options] files...`
 
 ###Description
 lossypng makes PNG files smaller by applying a lossy filter. The compressed PNG
