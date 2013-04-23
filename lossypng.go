@@ -22,13 +22,16 @@ const (
 	rgbaConversion
 )
 
+const deltaComponents = 4
+type colorDelta [deltaComponents]int // difference between two colors in rgba
+
 func main() {
 	var convertToRGBA, convertToGrayscale bool
-	var quantization uint
+	var quantization int
 	var extension string
 	flag.BoolVar(&convertToRGBA, "c", false, "convert image to 32-bit color")
 	flag.BoolVar(&convertToGrayscale, "g", false, "convert image to grayscale")
-	flag.UintVar(&quantization, "s", 16, "quantization threshold, zero is lossless")
+	flag.IntVar(&quantization, "s", 20, "quantization threshold, zero is lossless")
 	flag.StringVar(&extension, "e", "-lossy.png", "filename extension of output files")
 	flag.Parse()
 
@@ -65,7 +68,7 @@ func optimizePaths(
 	pathChan <-chan string,
 	waiter *sync.WaitGroup,
 	colorConversion int,
-	quantization uint,
+	quantization int,
 	extension string,
 ) {
 	for path := range pathChan {
@@ -77,7 +80,7 @@ func optimizePaths(
 func optimizePath(
 	inPath string,
 	colorConversion int,
-	quantization uint,
+	quantization int,
 	extension string,
 ) {
 	// load image
@@ -205,7 +208,7 @@ func optimizeForAverageFilter(
 	pixels []uint8,
 	bounds image.Rectangle,
 	stride, bytesPerPixel int,
-	quantization uint,
+	quantization int,
 ) {
 	if quantization == 0 {
 		// Algorithm requires positive number.
@@ -213,27 +216,49 @@ func optimizeForAverageFilter(
 		return
 	}
 
+	halfStep := quantization / 2
 	height := bounds.Dy()
 	width := bounds.Dx()
-	halfStep := quantization / 2
+
+	// add one to make room for floyd steinberg kernel window
+	colorError := make([]int, (width + 1) * bytesPerPixel)
+	lastError := make([]int, (width + 1) * bytesPerPixel)
 
 	for y := 1; y < height; y++ {
 		for x := 1; x < width; x++ {
 			for c := 0; c < bytesPerPixel; c++ {
+				var diffusion int
+				// coefficients must sum to kernelScale
+				diffusion += 7 * colorError[(x-1)*bytesPerPixel + c]
+				diffusion += 1 * lastError[(x-1)*bytesPerPixel + c]
+				diffusion += 5 * lastError[x*bytesPerPixel + c]
+				diffusion += 3 * lastError[(x+1)*bytesPerPixel + c]
+				if diffusion < 0 {
+					diffusion -= 8
+				} else {
+					diffusion += 8
+				}
+				diffusion /= 16
+
 				offset := y*stride + x*bytesPerPixel + c
-				here := uint(pixels[offset])
-				up := uint(pixels[offset-stride])
-				left := uint(pixels[offset-bytesPerPixel])
+				here := int(pixels[offset])
+				up := int(pixels[offset-stride])
+				left := int(pixels[offset-bytesPerPixel])
 				average := (up + left) / 2 // PNG average filter
 
-				newValue := here - average + halfStep // underflows, but that's ok
+				newValue := diffusion + here - average
+				newValue += halfStep
 				newValue -= newValue % quantization
-				newValue += average // because this usually overflows it back
-				if newValue < 256 { // but not always
+				newValue += average
+				var errorHere int
+				if newValue >= 0 && newValue <= 255 {
 					pixels[offset] = uint8(newValue)
+					errorHere = here - newValue
 				}
+				colorError[x*bytesPerPixel + c] = errorHere
 			}
 		}
+		lastError, colorError = colorError, lastError
 	}
 }
 
@@ -241,14 +266,24 @@ func optimizeForPaethFilter(
 	pixels []uint8,
 	bounds image.Rectangle,
 	stride int,
-	quantization uint,
+	quantization int,
 	palette color.Palette,
 ) {
 	height := bounds.Dy()
 	width := bounds.Dx()
 
+	// add one to make room for floyd steinberg kernel window
+	colorError := make([]colorDelta, width + 1)
+	lastError := make([]colorDelta, width + 1)
+
 	for y := 1; y < height; y++ {
 		for x := 1; x < width; x++ {
+			leftError := colorError[x-1]
+			diagonalError := lastError[x-1]
+			upError := lastError[x]
+			rightError := lastError[x+1]
+			diffusion := diffuseColorDeltas(leftError, diagonalError, upError, rightError)
+
 			offset := y*stride + x
 			here := pixels[offset]
 			up := pixels[offset-stride]
@@ -256,11 +291,19 @@ func optimizeForPaethFilter(
 			diagonal := pixels[offset-stride-1]
 			paeth := paethPredictor(left, up, diagonal) // PNG Paeth filter
 
-			distance := colorDistance(palette[here], palette[paeth])
-			if distance < quantization {
+			delta := colorDifference(palette[here], palette[paeth])
+			total := addColorDeltas(delta, diffusion)
+			var errorHere colorDelta
+			if total.magnitude() < quantization {
 				pixels[offset] = paeth
+				errorHere = delta
+			}
+
+			for c := 0; c < 4; c++ {
+				colorError[x] = errorHere
 			}
 		}
+		lastError, colorError = colorError, lastError
 	}
 }
 
@@ -282,38 +325,66 @@ func paethPredictor(a, b, c uint8) uint8 {
 	return c
 }
 
-func colorDistance(a, b color.Color) uint {
-	const componentCount = 4
-	var ca, cb [componentCount]uint32
+func colorDifference(a, b color.Color) colorDelta {
+	var ca, cb [deltaComponents]uint32
 	ca[0], ca[1], ca[2], ca[3] = a.RGBA()
 	cb[0], cb[1], cb[2], cb[3] = b.RGBA()
-	var d2 uint64
-	for i := 0; i < componentCount; i++ {
-		var d uint32
-		if ca[i] > cb[i] {
-			d = ca[i] - cb[i]
-		} else {
-			d = cb[i] - ca[i]
-		}
-		d2 += uint64(d * d)
+
+	var delta colorDelta
+	for i := 0; i < deltaComponents; i++ {
+		delta[i] = int(ca[i]) - int(cb[i])
 	}
 
-	// ca/cb components are in 16-bit color, output must be 8-bit color, so shift
-	return uint(gapsqrt64(d2) >> 8)
+	return delta
 }
 
-func gapsqrt64(x uint64) uint32 {
-	var rem, root uint64
-	for i := 0; i < 32; i++ {
+func (delta colorDelta)magnitude() int {
+	var d2 uint32
+	for i := 0; i < deltaComponents; i++ {
+		d2 += uint32(delta[i] * delta[i])
+	}
+
+	// delta components are in 16-bit color, output must be 8-bit color, so shift
+	return int(gapsqrt32(d2) >> 8)
+}
+
+func addColorDeltas(a, b colorDelta) colorDelta {
+	var delta colorDelta
+	for i := 0; i < deltaComponents; i++ {
+		delta[i] = a[i] + b[i]
+	}
+	return delta
+}
+
+func diffuseColorDeltas(left, diagonal, up, right colorDelta) colorDelta {
+	var delta colorDelta
+	for i := 0; i < deltaComponents; i++ {
+		delta[i] += 7 * left[i]
+		delta[i] += 1 * diagonal[i]
+		delta[i] += 5 * up[i]
+		delta[i] += 3 * right[i]
+		if delta[i] < 0 {
+			delta[i] -= 8
+		} else {
+			delta[i] += 8
+		}
+		delta[i] /= 16
+	}
+	return delta
+}
+
+func gapsqrt32(x uint32) uint16 {
+	var rem, root uint32
+	for i := 0; i < 16; i++ {
 		root <<= 1
-		rem = (rem << 2) | (x >> 62)
+		rem = (rem << 2) | (x >> 30)
 		x <<= 2
 		if root < rem {
 			rem -= root | 1
 			root += 2
 		}
 	}
-	return uint32(root >> 1)
+	return uint16(root >> 1)
 }
 
 func abs(x int) int {
