@@ -1,9 +1,6 @@
 lossypng
 ========
 
-###Synopsis
-`lossypng [options] files...`
-
 ###Description
 lossypng makes PNG files smaller by applying a lossy filter. The compressed PNG
 is written to a new file with the extension -lossy.png. With default settings,
@@ -24,6 +21,9 @@ grayscale images to ensure they use direct grayscale instead of a palette.
 Images with a lot of flat colors will not compress well with lossypng and may
 even increase in size. These images are already well-quantized. Photographic
 images compress best.
+
+###Synopsis
+`lossypng [options] files...`
 
 ###Options
 `-c`
@@ -84,10 +84,6 @@ seconds.
 ###Improvements
 For some applications, all transparent pixels in the image must remain fully
 transparent. An option that leaves all transparent pixels untouched would help.
-
-The quantization algorithm could be changed to consider an area of pixels
-instead of just the neighbors. It could use this information to dither and
-prevent banding.
 
 Currently lossypng compares colors with a simple Euclidian distance between
 RGBA values. A perceptual color comparison would work better.
