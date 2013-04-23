@@ -1,7 +1,6 @@
 lossypng
 ========
 
-###Description
 lossypng makes PNG files smaller by applying a lossy filter. The compressed PNG
 is written to a new file with the extension -lossy.png. With default settings,
 lossypng shrinks files by about 50% with minimal loss of quality.
