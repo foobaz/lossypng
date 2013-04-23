@@ -269,6 +269,11 @@ func optimizeForPaethFilter(
 	quantization int,
 	palette color.Palette,
 ) {
+	colorCount := len(palette)
+	if colorCount <= 0 {
+		return
+	}
+
 	height := bounds.Dy()
 	width := bounds.Dx()
 
@@ -292,16 +297,27 @@ func optimizeForPaethFilter(
 			paeth := paethPredictor(left, up, diagonal) // PNG Paeth filter
 
 			delta := colorDifference(palette[here], palette[paeth])
-			total := addColorDeltas(delta, diffusion)
-			var errorHere colorDelta
+			total := delta.add(diffusion)
 			if total.magnitude() < quantization {
 				pixels[offset] = paeth
-				errorHere = delta
+			} else {
+				var bestColor int
+				delta = colorDifference(palette[here], palette[bestColor])
+				total = delta.add(diffusion)
+				bestMagnitude := total.magnitude()
+				for i := 1; i < colorCount; i++ {
+					nextDelta := colorDifference(palette[here], palette[i])
+					total = nextDelta.add(diffusion)
+					nextMagnitude := total.magnitude()
+					if bestMagnitude > nextMagnitude {
+						bestMagnitude = nextMagnitude
+						delta = nextDelta
+						bestColor = i
+					}
+				}
+				pixels[offset] = uint8(bestColor)
 			}
-
-			for c := 0; c < 4; c++ {
-				colorError[x] = errorHere
-			}
+			colorError[x] = delta
 		}
 		lastError, colorError = colorError, lastError
 	}
@@ -339,19 +355,35 @@ func colorDifference(a, b color.Color) colorDelta {
 }
 
 func (delta colorDelta)magnitude() int {
-	var d2 uint32
+	var d2 uint64
 	for i := 0; i < deltaComponents; i++ {
-		d2 += uint32(delta[i] * delta[i])
+		d2 += uint64(int64(delta[i]) * int64(delta[i]))
 	}
 
 	// delta components are in 16-bit color, output must be 8-bit color, so shift
-	return int(gapsqrt32(d2) >> 8)
+	return int(gapsqrt64(d2) >> 8)
 }
 
 func addColorDeltas(a, b colorDelta) colorDelta {
 	var delta colorDelta
 	for i := 0; i < deltaComponents; i++ {
 		delta[i] = a[i] + b[i]
+	}
+	return delta
+}
+
+func (a colorDelta)add(b colorDelta) colorDelta {
+	var delta colorDelta
+	for i := 0; i < deltaComponents; i++ {
+		delta[i] = a[i] + b[i]
+	}
+	return delta
+}
+
+func (a colorDelta)subtract(b colorDelta) colorDelta {
+	var delta colorDelta
+	for i := 0; i < deltaComponents; i++ {
+		delta[i] = a[i] - b[i]
 	}
 	return delta
 }
@@ -373,18 +405,18 @@ func diffuseColorDeltas(left, diagonal, up, right colorDelta) colorDelta {
 	return delta
 }
 
-func gapsqrt32(x uint32) uint16 {
-	var rem, root uint32
-	for i := 0; i < 16; i++ {
+func gapsqrt64(x uint64) uint32 {
+	var rem, root uint64
+	for i := 0; i < 32; i++ {
 		root <<= 1
-		rem = (rem << 2) | (x >> 30)
+		rem = (rem << 2) | (x >> 62)
 		x <<= 2
 		if root < rem {
 			rem -= root | 1
 			root += 2
 		}
 	}
-	return uint16(root >> 1)
+	return uint32(root >> 1)
 }
 
 func abs(x int) int {
