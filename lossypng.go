@@ -364,26 +364,10 @@ func (delta colorDelta)magnitude() int {
 	return int(gapsqrt64(d2) >> 8)
 }
 
-func addColorDeltas(a, b colorDelta) colorDelta {
-	var delta colorDelta
-	for i := 0; i < deltaComponents; i++ {
-		delta[i] = a[i] + b[i]
-	}
-	return delta
-}
-
 func (a colorDelta)add(b colorDelta) colorDelta {
 	var delta colorDelta
 	for i := 0; i < deltaComponents; i++ {
 		delta[i] = a[i] + b[i]
-	}
-	return delta
-}
-
-func (a colorDelta)subtract(b colorDelta) colorDelta {
-	var delta colorDelta
-	for i := 0; i < deltaComponents; i++ {
-		delta[i] = a[i] - b[i]
 	}
 	return delta
 }
