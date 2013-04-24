@@ -91,6 +91,11 @@ images will compress in well under a second. Large images may take a few
 seconds.
 
 ###Improvements
+If a PNG file has gamma information it is ignored and discarded. Output images
+will therefore render lighter or darker than they should. Gamma information
+should be taken into account, or at least preserved, but the PNG codec in Go's
+standard library does not offer this functionality.
+
 For some applications, all transparent pixels in the image must remain fully
 transparent. An option that leaves all transparent pixels untouched would help.
 
