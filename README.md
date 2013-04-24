@@ -35,7 +35,7 @@ Specifies the new filename extension. Defaults to "-lossy.png".
 Convert image to grayscale.
 
 `-s=strength`
-Quantization strength. Defaults to 16. Zero is lossless.
+Quantization strength. Defaults to 20. Zero is lossless.
 
 ###Installation
 `go get github.com/foobaz/lossypng`
@@ -100,32 +100,33 @@ All code in lossypng is public domain. You may use it however you wish.
 
 ###Examples
 ####Lena, 24-bit direct color
-original, 474kB:
+original, 474 kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
 
--s=16, 145kB (31% of original):
+-s=20, 89 kB (19% of original):
 
 ![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
 
--s=40, 66kB (14% of original):
+-s=40, 52 kB (11% of original):
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
 ####Tux, 8-bit indexed color with alpha
-original, 12kB:
+original, 11.9 kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
 
--s=16, 13kB (111% of original, larger!):
+-s=20, 11.4 kB (96% of original):
 
 ![tux lossy](http://frammish.org/lossypng/Tux-lossy.png)
 
--s=40, 8kB (66% of original):
+-s=40, 9.0 kB (75% of original):
 
 ![tux heavy](http://frammish.org/lossypng/Tux-heavy.png)
 
 The Tux image performs poorly because the original image was compressed with
 a stronger DEFLATE algorithm than Go's PNG encoder uses. If all three images
-are postprocessed with pngout, lossypng looks much better. The image for -s=16
-compresses to 10kB (83%) and -s=40 compresses to 7kB (55%).
+are postprocessed with pngout, the original stays the same size, but the two
+created by lossypng get even smaller. The image for -s=20 compresses to 9.4 kB
+(79%) and -s=40 compresses to 7.7 kB (55%).
