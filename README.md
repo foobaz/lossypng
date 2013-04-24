@@ -130,3 +130,16 @@ a stronger DEFLATE algorithm than Go's PNG encoder uses. If all three images
 are postprocessed with pngout, the original stays the same size, but the two
 created by lossypng get even smaller. The image for -s=20 compresses to 9.4 kB
 (79%) and -s=40 compresses to 7.7 kB (55%).
+
+####Dice, 32-bit direct color with full alpha
+original, 221 kB:
+
+![dice](http://frammish.org/lossypng/dice.png)
+
+-s=20, 74 kB (34% of original):
+
+![dice lossy](http://frammish.org/lossypng/dice-lossy.png)
+
+-s=40, 45 kB (21% of original):
+
+![dice heavy](http://frammish.org/lossypng/dice-heavy.png)
