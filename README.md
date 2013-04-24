@@ -72,7 +72,8 @@ compressed by zlib. Images compressed with the Paeth filter have different
 artifacts which appear as horizontal and vertical banding.
 
 Both algorithms diffuse error using
-[Floyd-Steinberg dithering](Floyd–Steinberg dithering) to reduce banding.
+[Floyd-Steinberg dithering](http://en.wikipedia.org/wiki/Floyd%E2%80%93Steinberg_dithering)
+to reduce banding and improve large-scale color accuracy.
 
 The alternative Paeth algorithm requires an indexed color image and lossypng
 cannot convert direct color images to indexed color. To try the Paeth algorithm
