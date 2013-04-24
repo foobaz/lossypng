@@ -47,11 +47,16 @@ does much more than just compression. It was ported to Go as a command-line
 tool by William MacKay.
 
 ###Discussion
-The main algorithm works by compressing the image using PNG's average filter. It
-quantizes the pixels in the PNG file, after the filter but before DEFLATE (zlib)
-compression. Since the image is decoded using the average filter, the pixel
-color values are not quantized and have full range. The resulting artifacts are
-less noticable than traditional quantization with a color palette.
+The main algorithm works by optimizing the image for PNG's average filter. It
+quantizes the difference between the pixel and the value predicted by the
+average filter. When the image is encoded to PNG, this difference is what gets
+sent to zlib for compression. Since most bytes are quantized to a few values
+(e.g. -40, -20, 0, 20, 40), zlib is able to store them using less space than if
+it had many different numbers.
+
+When the image is decoded, PNG again uses the average filter. The resulting
+artifacts are less noticable than traditional quantization with a color palette
+because there are fewer sharp transitions between colors.
 
 The compression artifacts produced by the main algorithm show up as dots and
 smearing towards the bottom right. Images with a gradient in this direction
@@ -61,9 +66,13 @@ not compress well.
 There is an alternative algorithm for paletted images that optimizes for PNG's
 Paeth filter. The average filter does not work well for paletted images because
 changing the value of a pixel by one may have a dramatic effect on the color.
-The Paeth filter guesses a precise color so it is more suitable. Images
-compressed with the Paeth filter have different artifacts which appear as
-horizontal and vertical banding.
+The Paeth filter guesses a precise color so it is more suitable. If its guess is
+close enough, that color is used. This produces a lot of zeros in the bytes
+compressed by zlib. Images compressed with the Paeth filter have different
+artifacts which appear as horizontal and vertical banding.
+
+Both algorithms diffuse error using
+[Floyd-Steinberg dithering](Floyd–Steinberg dithering) to reduce banding.
 
 The alternative Paeth algorithm requires an indexed color image and lossypng
 cannot convert direct color images to indexed color. To try the Paeth algorithm
