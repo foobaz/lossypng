@@ -13,9 +13,6 @@ PNG.
 
 The algorithm in lossypng works best on direct color images. Indexed color
 images with a color palette are compressed using an alternative algorithm.
-Passing the -c option will convert an image to 32-bit color and use direct
-color compression, which may produce better results. Pass the -g option with
-grayscale images to ensure they use direct grayscale instead of a palette.
 
 Images with a lot of flat colors will not compress well with lossypng and may
 even increase in size. These images are already well-quantized. Photographic
@@ -92,9 +89,6 @@ will therefore render lighter or darker than they should. Gamma information
 should be taken into account, or at least preserved, but the PNG codec in Go's
 standard library does not offer this functionality.
 
-For some applications, all transparent pixels in the image must remain fully
-transparent. An option that leaves all transparent pixels untouched would help.
-
 Currently lossypng compares colors with a simple Euclidian distance between
 RGBA values. A perceptual color comparison would work better.
 
@@ -115,11 +109,11 @@ original, 474 kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
 
--s=20, 89 kB (18% of original):
+-s=20, 84 kB (18% of original):
 
 ![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
 
--s=40, 50 kB (11% of original):
+-s=40, 48 kB (10% of original):
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
@@ -147,10 +141,10 @@ original, 221 kB:
 
 ![dice](http://frammish.org/lossypng/dice.png)
 
--s=20, 75 kB (34% of original):
+-s=20, 85 kB (38% of original):
 
 ![dice lossy](http://frammish.org/lossypng/dice-lossy.png)
 
--s=40, 45 kB (20% of original):
+-s=40, 58 kB (26% of original):
 
 ![dice heavy](http://frammish.org/lossypng/dice-heavy.png)

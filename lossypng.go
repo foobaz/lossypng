@@ -228,24 +228,31 @@ func optimizeForAverageFilter(
 		colorError[i] = make([]colorDelta, width + filterWidth - 1)
 	}
 
-	for y := 1; y < height; y++ {
-		for x := 1; x < width; x++ {
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
 			diffusion := diffuseColorDeltas(colorError, x + filterCenter)
 			for c := 0; c < bytesPerPixel; c++ {
 				offset := y*stride + x*bytesPerPixel + c
 				here := int32(pixels[offset])
-				up := int32(pixels[offset-stride])
-				left := int32(pixels[offset-bytesPerPixel])
-				average := (up + left) / 2 // PNG average filter
-
-				newValue := diffusion[c] + here - average
-				newValue += halfStep
-				newValue -= newValue % int32(quantization)
-				newValue += average
 				var errorHere int32
-				if newValue >= 0 && newValue <= 255 {
-					pixels[offset] = uint8(newValue)
-					errorHere = here - newValue
+				if here > 0 && here < 255 {
+					var up, left int32
+					if y > 0 {
+						up = int32(pixels[offset-stride])
+					}
+					if x > 0 {
+						left = int32(pixels[offset-bytesPerPixel])
+					}
+					average := (up + left) / 2 // PNG average filter
+
+					newValue := diffusion[c] + here - average
+					newValue += halfStep
+					newValue -= newValue % int32(quantization)
+					newValue += average
+					if newValue >= 0 && newValue <= 255 {
+						pixels[offset] = uint8(newValue)
+						errorHere = here - newValue
+					}
 				}
 				colorError[0][x + filterCenter][c] = errorHere
 			}
@@ -279,15 +286,22 @@ func optimizeForPaethFilter(
 		colorError[i] = make([]colorDelta, width + filterWidth - 1)
 	}
 
-	for y := 1; y < height; y++ {
-		for x := 1; x < width; x++ {
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
 			diffusion := diffuseColorDeltas(colorError, x + filterCenter)
 
 			offset := y*stride + x
 			here := pixels[offset]
-			up := pixels[offset-stride]
-			left := pixels[offset-1]
-			diagonal := pixels[offset-stride-1]
+			var up, left, diagonal uint8
+			if y > 0 {
+				up = pixels[offset-stride]
+			}
+			if x > 0 {
+				left = pixels[offset-1]
+			}
+			if y > 0 && x > 0 {
+				diagonal = pixels[offset-stride-1]
+			}
 			paeth := paethPredictor(left, up, diagonal) // PNG Paeth filter
 
 			bestDelta := colorDifference(palette[here], palette[paeth])
