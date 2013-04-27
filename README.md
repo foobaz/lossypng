@@ -139,8 +139,8 @@ original, 11.9 kB:
 The Tux image performs poorly because the original image was compressed with
 a stronger DEFLATE algorithm than Go's PNG encoder uses. If all three images
 are postprocessed with pngout, the original stays the same size, but the two
-created by lossypng get even smaller. The image for -s=20 compresses to 9.4 kB
-(79%) and -s=40 compresses to 7.7 kB (55%).
+created by lossypng get even smaller. The image for -s=20 compresses to 9.3 kB
+(78%) and -s=40 compresses to 7.6 kB (64%).
 
 ####Dice, 32-bit direct color with full alpha
 original, 221 kB:
