@@ -23,7 +23,7 @@ const (
 )
 
 const deltaComponents = 4
-type colorDelta [deltaComponents]int // difference between two colors in rgba
+type colorDelta [deltaComponents]int32 // difference between two colors in rgba
 
 func main() {
 	var convertToRGBA, convertToGrayscale bool
@@ -216,49 +216,43 @@ func optimizeForAverageFilter(
 		return
 	}
 
-	halfStep := quantization / 2
+	halfStep := int32(quantization / 2)
 	height := bounds.Dy()
 	width := bounds.Dx()
 
-	// add one to make room for floyd steinberg kernel window
-	colorError := make([]int, (width + 1) * bytesPerPixel)
-	lastError := make([]int, (width + 1) * bytesPerPixel)
+	const errorRowCount = 3
+	const filterWidth = 5
+	const filterCenter = 2
+	var colorError [errorRowCount][]colorDelta
+	for i := 0; i < errorRowCount; i++ {
+		colorError[i] = make([]colorDelta, width + filterWidth - 1)
+	}
 
 	for y := 1; y < height; y++ {
 		for x := 1; x < width; x++ {
+			diffusion := diffuseColorDeltas(colorError, x + filterCenter)
 			for c := 0; c < bytesPerPixel; c++ {
-				var diffusion int
-				// coefficients must sum to kernelScale
-				diffusion += 7 * colorError[(x-1)*bytesPerPixel + c]
-				diffusion += 1 * lastError[(x-1)*bytesPerPixel + c]
-				diffusion += 5 * lastError[x*bytesPerPixel + c]
-				diffusion += 3 * lastError[(x+1)*bytesPerPixel + c]
-				if diffusion < 0 {
-					diffusion -= 8
-				} else {
-					diffusion += 8
-				}
-				diffusion /= 16
-
 				offset := y*stride + x*bytesPerPixel + c
-				here := int(pixels[offset])
-				up := int(pixels[offset-stride])
-				left := int(pixels[offset-bytesPerPixel])
+				here := int32(pixels[offset])
+				up := int32(pixels[offset-stride])
+				left := int32(pixels[offset-bytesPerPixel])
 				average := (up + left) / 2 // PNG average filter
 
-				newValue := diffusion + here - average
+				newValue := diffusion[c] + here - average
 				newValue += halfStep
-				newValue -= newValue % quantization
+				newValue -= newValue % int32(quantization)
 				newValue += average
-				var errorHere int
+				var errorHere int32
 				if newValue >= 0 && newValue <= 255 {
 					pixels[offset] = uint8(newValue)
 					errorHere = here - newValue
 				}
-				colorError[x*bytesPerPixel + c] = errorHere
+				colorError[0][x + filterCenter][c] = errorHere
 			}
 		}
-		lastError, colorError = colorError, lastError
+		for i := 0; i < errorRowCount; i++ {
+			colorError[(i+1) % errorRowCount] = colorError[i]
+		}
 	}
 }
 
@@ -277,17 +271,17 @@ func optimizeForPaethFilter(
 	height := bounds.Dy()
 	width := bounds.Dx()
 
-	// add one to make room for floyd steinberg kernel window
-	colorError := make([]colorDelta, width + 1)
-	lastError := make([]colorDelta, width + 1)
+	const errorRowCount = 3
+	const filterWidth = 5
+	const filterCenter = 2
+	var colorError [errorRowCount][]colorDelta
+	for i := 0; i < errorRowCount; i++ {
+		colorError[i] = make([]colorDelta, width + filterWidth - 1)
+	}
 
 	for y := 1; y < height; y++ {
 		for x := 1; x < width; x++ {
-			leftError := colorError[x-1]
-			diagonalError := lastError[x-1]
-			upError := lastError[x]
-			rightError := lastError[x+1]
-			diffusion := diffuseColorDeltas(leftError, diagonalError, upError, rightError)
+			diffusion := diffuseColorDeltas(colorError, x + filterCenter)
 
 			offset := y*stride + x
 			here := pixels[offset]
@@ -296,30 +290,32 @@ func optimizeForPaethFilter(
 			diagonal := pixels[offset-stride-1]
 			paeth := paethPredictor(left, up, diagonal) // PNG Paeth filter
 
-			delta := colorDifference(palette[here], palette[paeth])
-			total := delta.add(diffusion)
-			if total.magnitude() < quantization {
-				pixels[offset] = paeth
+			bestDelta := colorDifference(palette[here], palette[paeth])
+			total := bestDelta.add(diffusion)
+			var bestColor uint8
+			if (total.magnitude() >> 16) < uint64(quantization * quantization) {
+				bestColor = paeth
 			} else {
-				var bestColor int
-				delta = colorDifference(palette[here], palette[bestColor])
-				total = delta.add(diffusion)
+				bestDelta = colorDifference(palette[here], palette[bestColor])
+				total = bestDelta.add(diffusion)
 				bestMagnitude := total.magnitude()
-				for i := 1; i < colorCount; i++ {
-					nextDelta := colorDifference(palette[here], palette[i])
-					total = nextDelta.add(diffusion)
+				for i, candidate := range palette {
+					delta := colorDifference(palette[here], candidate)
+					total = delta.add(diffusion)
 					nextMagnitude := total.magnitude()
 					if bestMagnitude > nextMagnitude {
 						bestMagnitude = nextMagnitude
-						delta = nextDelta
-						bestColor = i
+						bestDelta = delta
+						bestColor = uint8(i)
 					}
 				}
-				pixels[offset] = uint8(bestColor)
 			}
-			colorError[x] = delta
+			pixels[offset] = bestColor
+			colorError[0][x + filterCenter] = bestDelta
 		}
-		lastError, colorError = colorError, lastError
+		for i := 0; i < errorRowCount; i++ {
+			colorError[(i+1) % errorRowCount] = colorError[i]
+		}
 	}
 }
 
@@ -342,26 +338,55 @@ func paethPredictor(a, b, c uint8) uint8 {
 }
 
 func colorDifference(a, b color.Color) colorDelta {
-	var ca, cb [deltaComponents]uint32
+	var ca, cb [4]uint32
 	ca[0], ca[1], ca[2], ca[3] = a.RGBA()
 	cb[0], cb[1], cb[2], cb[3] = b.RGBA()
+	//fmt.Printf("ca == %v, cb == %v\n", ca, cb)
 
-	var delta colorDelta
-	for i := 0; i < deltaComponents; i++ {
-		delta[i] = int(ca[i]) - int(cb[i])
+	const full = 65535
+	var delta [4]int32
+	for i := 0; i < 3; i++ {
+		pa := ca[i] * full
+		if ca[3] > 0 {
+			pa /= ca[3]
+		}
+		pb := cb[i] * full
+		if cb[3] > 0 {
+			pb /= cb[3]
+		}
+		delta[i] = int32(pa) - int32(pb)
+	}
+	delta[3] = int32(ca[3]) - int32(cb[3])
+
+	/*
+	 * Compute a very basic perceptual distance using
+	 * formula from http://www.compuphase.com/cmetric.htm .
+	 */
+	redA := ca[0]
+	redB := cb[0]
+	if ca[3] > 0 {
+		redA = redA * full / ca[3]
+	}
+	if cb[3] > 0 {
+		redB = redB * full / cb[3]
 	}
 
-	return delta
+	redMean := int32((redA + redB) / 2)
+	return colorDelta{
+		int32((2*full+redMean)*delta[0] / (3 * full)),
+		int32(4*delta[1] / 3),
+		int32((3*full-redMean)*delta[2] / (3 * full)),
+		int32(delta[3]),
+	}
 }
 
-func (delta colorDelta)magnitude() int {
+func (delta colorDelta)magnitude() uint64 {
 	var d2 uint64
 	for i := 0; i < deltaComponents; i++ {
 		d2 += uint64(int64(delta[i]) * int64(delta[i]))
 	}
 
-	// delta components are in 16-bit color, output must be 8-bit color, so shift
-	return int(gapsqrt64(d2) >> 8)
+	return d2
 }
 
 func (a colorDelta)add(b colorDelta) colorDelta {
@@ -372,35 +397,28 @@ func (a colorDelta)add(b colorDelta) colorDelta {
 	return delta
 }
 
-func diffuseColorDeltas(left, diagonal, up, right colorDelta) colorDelta {
+func diffuseColorDeltas(colorError [3][]colorDelta, x int) colorDelta {
 	var delta colorDelta
+	// Sierra dithering
 	for i := 0; i < deltaComponents; i++ {
-		delta[i] += 7 * left[i]
-		delta[i] += 1 * diagonal[i]
-		delta[i] += 5 * up[i]
-		delta[i] += 3 * right[i]
+		delta[i] += 2 * colorError[2][x-1][i]
+		delta[i] += 3 * colorError[2][x][i]
+		delta[i] += 2 * colorError[2][x+1][i]
+		delta[i] += 2 * colorError[1][x-2][i]
+		delta[i] += 4 * colorError[1][x-1][i]
+		delta[i] += 5 * colorError[1][x][i]
+		delta[i] += 4 * colorError[1][x+1][i]
+		delta[i] += 2 * colorError[1][x+2][i]
+		delta[i] += 3 * colorError[0][x-2][i]
+		delta[i] += 5 * colorError[0][x-1][i]
 		if delta[i] < 0 {
-			delta[i] -= 8
+			delta[i] -= 16
 		} else {
-			delta[i] += 8
+			delta[i] += 16
 		}
-		delta[i] /= 16
+		delta[i] /= 32
 	}
 	return delta
-}
-
-func gapsqrt64(x uint64) uint32 {
-	var rem, root uint64
-	for i := 0; i < 32; i++ {
-		root <<= 1
-		rem = (rem << 2) | (x >> 62)
-		x <<= 2
-		if root < rem {
-			rem -= root | 1
-			root += 2
-		}
-	}
-	return uint32(root >> 1)
 }
 
 func abs(x int) int {

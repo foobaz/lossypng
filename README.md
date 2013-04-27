@@ -43,8 +43,8 @@ Quantization strength. Defaults to 20. Zero is lossless.
 ###Credit
 This compression technique was invented by Michael Vinther for his excellent
 Windows program, [Image Analyzer](http://meesoft.logicnet.dk/Analyzer/). It
-does much more than just compression. It was ported to Go as a command-line
-tool by William MacKay.
+does much more than just compression. It was ported and improved by William
+MacKay.
 
 ###Discussion
 The main algorithm works by optimizing the image for PNG's average filter. It
@@ -70,10 +70,6 @@ The Paeth filter guesses a precise color so it is more suitable. If its guess is
 close enough, that color is used. This produces a lot of zeros in the bytes
 compressed by zlib. Images compressed with the Paeth filter have different
 artifacts which appear as horizontal and vertical banding.
-
-Both algorithms diffuse error using
-[Floyd-Steinberg dithering](http://en.wikipedia.org/wiki/Floyd%E2%80%93Steinberg_dithering)
-to reduce banding and improve large-scale color accuracy.
 
 The alternative Paeth algorithm requires an indexed color image and lossypng
 cannot convert direct color images to indexed color. To try the Paeth algorithm
@@ -119,11 +115,11 @@ original, 474 kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
 
--s=20, 89 kB (19% of original):
+-s=20, 89 kB (18% of original):
 
 ![lena lossy](http://frammish.org/lossypng/lena-lossy.png)
 
--s=40, 52 kB (11% of original):
+-s=40, 50 kB (11% of original):
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
@@ -132,11 +128,11 @@ original, 11.9 kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
 
--s=20, 11.4 kB (96% of original):
+-s=20, 11.4 kB (95% of original):
 
 ![tux lossy](http://frammish.org/lossypng/Tux-lossy.png)
 
--s=40, 9.0 kB (75% of original):
+-s=40, 8.9 kB (75% of original):
 
 ![tux heavy](http://frammish.org/lossypng/Tux-heavy.png)
 
@@ -151,10 +147,10 @@ original, 221 kB:
 
 ![dice](http://frammish.org/lossypng/dice.png)
 
--s=20, 74 kB (34% of original):
+-s=20, 75 kB (34% of original):
 
 ![dice lossy](http://frammish.org/lossypng/dice-lossy.png)
 
--s=40, 45 kB (21% of original):
+-s=40, 45 kB (20% of original):
 
 ![dice heavy](http://frammish.org/lossypng/dice-heavy.png)
