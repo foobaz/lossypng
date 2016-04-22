@@ -38,7 +38,7 @@ Quantization strength. Defaults to 20. Zero is lossless.
 Replace original file
 
 `-a`
-Exec external command when compress fail (compress >99%). Sample: `-a "advpng -z -4"`
+Exec external command when compress fail (compress >99%). Sample: `-a "advpng -z -4"` (`sudo apt-get install advancecomp` for use `advpng`)
 
 
 ###Installation
