@@ -7,10 +7,14 @@ import (
 	"image/draw"
 )
 
+// ColorConversion specifies what color profile the image should be converted
+// to, if any
+type ColorConversion int
+
 const (
 	// NoConversion specifies that an image should not be converted to a
 	// different color profile
-	NoConversion = iota
+	NoConversion ColorConversion = iota
 
 	// GrayscaleConversion specifies the image should be converted to grayscale
 	GrayscaleConversion
@@ -26,7 +30,7 @@ const deltaComponents = 4
 // Must be >= 0 .
 func Compress(
 	decoded image.Image,
-	colorConversion int,
+	colorConversion ColorConversion,
 	quantization int,
 ) image.Image {
 	// optimize image, converting colorspace if requested

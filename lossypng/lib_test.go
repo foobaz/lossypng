@@ -24,8 +24,12 @@ func TestCompression(t *testing.T) {
 		if err != nil {
 			t.Fatalf("couldn't decode file %s", name)
 		}
-		modes := [...]int{NoConversion, GrayscaleConversion, RGBAConversion}
-		for mode := range modes {
+		modes := [...]ColorConversion{
+			NoConversion,
+			GrayscaleConversion,
+			RGBAConversion,
+		}
+		for _, mode := range modes {
 			compressed := Compress(img, mode, 20)
 			buf := new(bytes.Buffer)
 			err := png.Encode(buf, compressed)
