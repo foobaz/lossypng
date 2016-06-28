@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/foobaz/lossypng/lossypng"
 	"image"
 	_ "image/gif" // for image.Decode() format registration
 	_ "image/jpeg"
@@ -14,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/foobaz/lossypng/lossypng"
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	flag.StringVar(&addProcessing, "a", "", "external command after fail")
 	flag.Parse()
 
-	var colorConversion int
+	var colorConversion lossypng.ColorConversion
 	if convertToRGBA && !convertToGrayscale {
 		colorConversion = lossypng.RGBAConversion
 	} else if convertToGrayscale && !convertToRGBA {
@@ -60,7 +61,7 @@ func main() {
 func optimizePaths(
 	pathChan <-chan string,
 	waiter *sync.WaitGroup,
-	colorConversion int,
+	colorConversion lossypng.ColorConversion,
 	quantization int,
 	extension string,
 	rewriteOriginal bool,
@@ -74,7 +75,7 @@ func optimizePaths(
 
 func optimizePath(
 	inPath string,
-	colorConversion int,
+	colorConversion lossypng.ColorConversion,
 	quantization int,
 	extension string,
 	rewriteOriginal bool,
