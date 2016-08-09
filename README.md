@@ -34,6 +34,13 @@ Convert image to grayscale.
 `-s=strength`
 Quantization strength. Defaults to 20. Zero is lossless.
 
+`-r`
+Replace original file
+
+`-a`
+Exec external command when compress fail (compress >99%). Sample: `-a "advpng -z -4"` (`sudo apt-get install advancecomp` for use `advpng`)
+
+
 ###Installation
 `go get github.com/foobaz/lossypng`
 
