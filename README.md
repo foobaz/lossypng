@@ -18,10 +18,10 @@ Images with a lot of flat colors will not compress well with lossypng and may
 even increase in size. These images are already well-quantized. Photographic
 images compress best.
 
-###Synopsis
+### Synopsis
 `lossypng [options] files...`
 
-###Options
+### Options
 `-c`
 Convert image to 32-bit color.
 
@@ -41,16 +41,16 @@ Replace original file
 Exec external command when compress fail (compress >99%). Sample: `-a "advpng -z -4"` (`sudo apt-get install advancecomp` for use `advpng`)
 
 
-###Installation
+### Installation
 `go get github.com/foobaz/lossypng`
 
-###Credit
+### Credit
 This compression technique was invented by Michael Vinther for his excellent
 Windows program, [Image Analyzer](http://meesoft.logicnet.dk/Analyzer/). It
 does much more than just compression. It was ported and improved by William
 MacKay.
 
-###Discussion
+### Discussion
 The main algorithm works by optimizing the image for PNG's average filter. It
 quantizes the difference between the pixel and the value predicted by the
 average filter. When the image is encoded to PNG, this difference is what gets
@@ -90,7 +90,7 @@ If multiple input files are given, lossypng will process them in parallel. Most
 images will compress in well under a second. Large images may take a few
 seconds.
 
-###Improvements
+### Improvements
 If a PNG file has gamma information it is ignored and discarded. Output images
 will therefore render lighter or darker than they should. Gamma information
 should be taken into account, or at least preserved, but the PNG codec in Go's
@@ -107,11 +107,11 @@ The holy grail of lossy PNG compression is to go low-level instead and rewrite
 zlib to perform lossy comparisons. However, this presents many challenges and
 would be a very difficult project.
 
-###License
+### License
 All code in lossypng is public domain. You may use it however you wish.
 
-###Examples
-####Lena, 24-bit direct color
+### Examples
+#### Lena, 24-bit direct color
 original, 474 kB:
 
 ![lena](http://frammish.org/lossypng/lena.png)
@@ -124,7 +124,7 @@ original, 474 kB:
 
 ![lena heavy](http://frammish.org/lossypng/lena-heavy.png)
 
-####Tux, 8-bit indexed color with alpha
+#### Tux, 8-bit indexed color with alpha
 original, 11.9 kB:
 
 ![tux](http://frammish.org/lossypng/Tux.png)
@@ -143,7 +143,7 @@ are postprocessed with pngout, the original stays the same size, but the two
 created by lossypng get even smaller. The image for -s=20 compresses to 9.3 kB
 (78%) and -s=40 compresses to 7.6 kB (64%).
 
-####Dice, 32-bit direct color with full alpha
+#### Dice, 32-bit direct color with full alpha
 original, 221 kB:
 
 ![dice](http://frammish.org/lossypng/dice.png)
