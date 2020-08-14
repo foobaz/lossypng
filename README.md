@@ -1,3 +1,8 @@
+### 2020 Update
+I've written a new lossy PNG compressor named [pngloss](https://github.com/foobaz/pngloss). It performs better than lossypng, with lower file sizes and higher visual quality. It's a command-line program written in C, instead of a Go package. I recommend using this new one for best results.
+
+https://github.com/foobaz/pngloss
+
 lossypng
 ========
 
